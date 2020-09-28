@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata minClientVersion="4.1">
+    <id>MetaWear.CSharp</id>
+    <title>MetaWear C# SDK</title>
+    <version>1.2.0</version>
+    <authors>MbientLab</authors>
+    <owners>MbientLab</owners>
+    <licenseUrl>https://raw.githubusercontent.com/mbientlab/MetaWear-SDK-CSharp/master/LICENSE.md</licenseUrl>
+    <projectUrl>https://github.com/mbientlab/MetaWear-SDK-CSharp</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <copyright>Copyright 2014 - 2018(c). MbientLab Inc</copyright>
+    <summary>.NET Standard 2.0 MetaMotion / MetaWear C# SDK</summary>
+    <releaseNotes>https://github.com/mbientlab/MetaWear-SDK-CSharp/releases/tag/1.1.0</releaseNotes>
+    <description>
+Platform agnostic, .NET Standard 2.0 library for communicating with MetaMotion / MetaWear boards.  
+
+Due to its platform agnostic nature, this package is only an API for the BLE communication protocol; 
+users of this package will need to plugin their own BLE stack and file i/o code.
+
+Check out the MetaWear.Win10 and MetaWear.NetStandard packages for Windows 10 and NetStandard 2.0 specific 
+plugins for this project.
+    </description>
+    <tags>metawear metamotion metatracker sensors netstandard2.0</tags>
+  </metadata>
+  <files>
+    <file src="..\MetaWear\bin\Release\netstandard2.0\MbientLab.MetaWear.dll" target="lib\netstandard2.0" />
+    <file src="..\MetaWear\bin\Release\netstandard2.0\MbientLab.MetaWear.xml" target="lib\netstandard2.0" />
+  </files>
+</package>
