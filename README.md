@@ -8,4 +8,4 @@ If pip installation fail, manual launch
 ```
 pyhton3 setup.py install
 ```
-from the [Python](./Pyhton/) folder.
+from the [Python](https://github.com/IlKaiser/MetaMotionC/tree/master/Python/MetaWear-SDK-Python) folder.
