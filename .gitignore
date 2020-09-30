@@ -133,3 +133,6 @@ dmypy.json
 
 #Metawear
 .metawear/
+
+#Directory
+.directory/
