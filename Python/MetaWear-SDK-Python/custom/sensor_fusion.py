@@ -5,6 +5,9 @@ from mbientlab.metawear.cbindings import *
 from time import sleep
 from threading import Event
 
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 import platform
 import sys
 import copy
@@ -55,10 +58,38 @@ for s in states:
     libmetawear.mbl_mw_sensor_fusion_clear_enabled_mask(s.device.board)
     libmetawear.mbl_mw_datasignal_unsubscribe(signal_corrected_gyro)
     libmetawear.mbl_mw_debug_disconnect(s.device.board)
+
 print("Total Samples Received")
 for s in states:
     print("%s -> %d" % (s.device.address, s.samples))
-print("Gyro again just to be sure")
+#print("Gyro again just to be sure")
+#for s in states:
+#    for g in s.gyro_data:
+#        print("%s -> %s" % (s.device.address, g))
+
+
+## Plotting the data ##
+
 for s in states:
-    for g in s.gyro_data:
-        print("%s -> %s" % (s.device.address, g))
+    plt.style.use('fivethirtyeight')
+
+    x = []
+    y = []
+    z = []
+    
+    for g in s.gyro_data:      
+        x.append(g.x)
+        y.append(g.y)
+        z.append(g.z)
+        
+    plt.ylim(-500, 500)
+    plt.plot(x, label = 'x-line', linewidth = 1)
+    plt.plot(y, label = 'y-line', linewidth = 1)
+    plt.plot(z, label = 'z-line', linewidth = 1)
+    plt.legend()
+
+    plt.title('Sensor fusion plot')
+    plt.ylabel('values')
+
+    plt.show()
+
