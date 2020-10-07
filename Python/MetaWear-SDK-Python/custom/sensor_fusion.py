@@ -53,7 +53,7 @@ def animate(i):
     plt.legend()
     plt.tight_layout()
 def write_on_csv(x,y,z):
-        with open('measurements.csv', 'a', newline='') as file:
+        with open('measurements.csv', 'w', newline='') as file:
             writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC, delimiter=';')
             writer.writerow(["gyro-X","gyro-Y","gyro-Z"])
             for i in range(len(x)-1):
@@ -96,6 +96,7 @@ for i in range(len(sys.argv) - 1):
 th = threading.Thread(target=connection)
 th.start()
 plt.ylim(-2000, 2000)
+plt.xlim(right=10)
 plt.plot(x, label = 'x-line', linewidth = 1)
 plt.plot(y, label = 'y-line', linewidth = 1)
 plt.plot(z, label = 'z-line', linewidth = 1)
