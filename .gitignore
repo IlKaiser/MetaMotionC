@@ -136,3 +136,6 @@ dmypy.json
 
 #Directory
 .directory
+
+#CSV
+*.csv
