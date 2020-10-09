@@ -1,4 +1,4 @@
-# usage: python stream_acc.py [mac1] [mac2] ... [mac(n)]
+# usage: python sensor_fusion.py [mac1] [mac2] ... [mac(n)]
 from __future__ import print_function
 from mbientlab.metawear import *
 from mbientlab.metawear.cbindings import *
@@ -45,19 +45,22 @@ def connection():
             libmetawear.mbl_mw_datasignal_unsubscribe(signal_corrected_gyro)
             libmetawear.mbl_mw_debug_disconnect(s.device.board)
         write_on_csv(x,y,z)
-def animate(i):   
-    plt.cla()
-    plt.plot(x, label = 'x-line', linewidth = 1)
-    plt.plot(y, label = 'y-line', linewidth = 1)
-    plt.plot(z, label = 'z-line', linewidth = 1)
-    plt.legend()
-    plt.tight_layout()
+def animate(i):  
+    lines[0].set_data(t, x)
+    lines[1].set_data(t, y)
+    lines[2].set_data(t, z)
+    if len(t) > xlim:
+        ax.set_xlim(len(t) - xlim, len(t))
+    else:
+        ax.set_xlim(0, xlim)
+    return lines
 def write_on_csv(x,y,z):
         with open('measurements.csv', 'w', newline='') as file:
             writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC, delimiter=';')
-            writer.writerow(["gyro-X","gyro-Y","gyro-Z"])
+            writer.writerow(["counter","gyro-X","gyro-Y","gyro-Z"])
             for i in range(len(x)-1):
                 r = []
+                r.append(t[i])
                 r.append(x[i])
                 r.append(y[i])
                 r.append(z[i])
@@ -77,6 +80,7 @@ class State:
         data_copy = copy.deepcopy(parsed_data)
         self.gyro_data.append(data_copy)
         self.samples+= 1
+        t.append(self.samples)
         x.append(data_copy.x)
         y.append(data_copy.y)
         z.append(data_copy.z)
@@ -85,27 +89,107 @@ class State:
         value = parse_value(data)
         # convert ms to ns
         print("Battery percentage: %s%%" % value)
+class ZoomPan:
+    def __init__(self):
+        self.press = None
+        self.cur_xlim = None
+        self.cur_ylim = None
+        self.x0 = None
+        self.y0 = None
+        self.x1 = None
+        self.y1 = None
+        self.xpress = None
+        self.ypress = None
+
+
+    def zoom_factory(self, ax, base_scale = 2.):
+        def zoom(event):
+            cur_xlim = ax.get_xlim()
+            cur_ylim = ax.get_ylim()
+
+            xdata = event.xdata # get event x location
+            ydata = event.ydata # get event y location
+
+            if event.button == 'down':
+                # deal with zoom in
+                scale_factor = 1 / base_scale
+            elif event.button == 'up':
+                # deal with zoom out
+                scale_factor = base_scale
+            else:
+                # deal with something that should never happen
+                scale_factor = 1
+                print(event.button)
+
+            new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
+            new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
+
+            relx = (cur_xlim[1] - xdata)/(cur_xlim[1] - cur_xlim[0])
+            rely = (cur_ylim[1] - ydata)/(cur_ylim[1] - cur_ylim[0])
+
+            ax.set_xlim([xdata - new_width * (1-relx), xdata + new_width * (relx)])
+            ax.set_ylim([ydata - new_height * (1-rely), ydata + new_height * (rely)])
+            ax.figure.canvas.draw()
+
+        fig = ax.get_figure() # get the figure of interest
+        fig.canvas.mpl_connect('scroll_event', zoom)
+
+        return zoom
+
+    def pan_factory(self, ax):
+        def onPress(event):
+            if event.inaxes != ax: return
+            self.cur_xlim = ax.get_xlim()
+            self.cur_ylim = ax.get_ylim()
+            self.press = self.x0, self.y0, event.xdata, event.ydata
+            self.x0, self.y0, self.xpress, self.ypress = self.press
+
+        def onRelease(event):
+            self.press = None
+            ax.figure.canvas.draw()
+
+        def onMotion(event):
+            if self.press is None: return
+            if event.inaxes != ax: return
+            dx = event.xdata - self.xpress
+            dy = event.ydata - self.ypress
+            self.cur_xlim -= dx
+            self.cur_ylim -= dy
+            ax.set_xlim(self.cur_xlim)
+            ax.set_ylim(self.cur_ylim)
+
+            ax.figure.canvas.draw()
+
+        fig = ax.get_figure() # get the figure of interest
+
+        # attach the call back
+        fig.canvas.mpl_connect('button_press_event',onPress)
+        fig.canvas.mpl_connect('button_release_event',onRelease)
+        fig.canvas.mpl_connect('motion_notify_event',onMotion)
+
+        #return the function
+        return onMotion
+
 states = []
 x,y,z = [],[],[]
+t = []
 for i in range(len(sys.argv) - 1):
     d = MetaWear(sys.argv[i + 1])
     d.connect()
     print("Connected to " + d.address)
     states.append(State(d))
 
+### Animated plot ###
 th = threading.Thread(target=connection)
 th.start()
-plt.ylim(-2000, 2000)
-plt.xlim(right=10)
-plt.plot(x, label = 'x-line', linewidth = 1)
-plt.plot(y, label = 'y-line', linewidth = 1)
-plt.plot(z, label = 'z-line', linewidth = 1)
-plt.legend()
 
-ani = FuncAnimation(plt.gcf(), animate, interval=1)
+fig = plt.figure()
+xlim = 100
+ylim = 1000
+ax = plt.axes(xlim=(0, xlim), ylim=(-ylim, ylim))
+lines = [plt.plot([], [])[0] for _ in range(3)]
 
-plt.title('Sensor fusion plot')
-plt.ylabel('values')
+anim = FuncAnimation(fig, animate, frames=200, interval=30, blit=False)
 
 plt.show()
 
@@ -114,34 +198,23 @@ th.join()
 print("Total Samples Received")
 for s in states:
     print("%s -> %d" % (s.device.address, s.samples))
-#print("Gyro again just to be sure")
-#for s in states:
-#    for g in s.gyro_data:
-#        print("%s -> %s" % (s.device.address, g))
 
+### Dynamic plot ###
+fig, ax = plt.subplots()
+plt.subplots_adjust(bottom = 0.25)
 
-## Plotting the data ##
-'''
-for s in states:
-    plt.style.use('fivethirtyeight')
+plt.axis([0, xlim, -ylim, ylim])
+plt.plot(x, label = 'x-line', linewidth = 1)
+plt.plot(y, label = 'y-line', linewidth = 1)
+plt.plot(z, label = 'z-line', linewidth = 1)
 
-    x = []
-    y = []
-    z = []
-    
-    for g in s.gyro_data:      
-        x.append(g.x)
-        y.append(g.y)
-        z.append(g.z)
-        
-    plt.ylim(-2000, 2000)
-    plt.plot(x, label = 'x-line', linewidth = 1)
-    plt.plot(y, label = 'y-line', linewidth = 1)
-    plt.plot(z, label = 'z-line', linewidth = 1)
-    plt.legend()
+plt.legend()
+plt.title('Sensor fusion plot')
+plt.ylabel('values')
 
-    plt.title('Sensor fusion plot')
-    plt.ylabel('values')
+zp = ZoomPan()
+scale = 1.1
+figZoom = zp.zoom_factory(ax, base_scale = scale)
+figPan = zp.pan_factory(ax)
 
-    plt.show()
-'''
+plt.show()
