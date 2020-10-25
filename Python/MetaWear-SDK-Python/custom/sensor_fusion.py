@@ -29,6 +29,7 @@ def connection():
         sleep(1.5)
 
         signal_corrected_gyro = libmetawear.mbl_mw_sensor_fusion_get_data_signal(s.device.board,SensorFusionData.CORRECTED_GYRO)
+        print(signal_corrected_gyro)
         libmetawear.mbl_mw_datasignal_subscribe(signal_corrected_gyro, None, s.callback)
         libmetawear.mbl_mw_sensor_fusion_enable_data(s.device.board, SensorFusionData.CORRECTED_GYRO)
 
@@ -42,9 +43,23 @@ def connection():
         for s in states:
             libmetawear.mbl_mw_sensor_fusion_stop(s.device.board)
             libmetawear.mbl_mw_sensor_fusion_clear_enabled_mask(s.device.board)
-            libmetawear.mbl_mw_datasignal_unsubscribe(signal_corrected_gyro)
+            signal_gyro=libmetawear.mbl_mw_sensor_fusion_get_data_signal(s.device.board,SensorFusionData.CORRECTED_GYRO)
+            libmetawear.mbl_mw_datasignal_unsubscribe(signal_gyro)
             libmetawear.mbl_mw_debug_disconnect(s.device.board)
+            print("Successfully unsubscribed")
+        print("Resetting devices")
+        events = []
+        for s in states:
+            e = Event()
+            events.append(e)
+
+            s.device.on_disconnect = lambda s: e.set()
+            libmetawear.mbl_mw_debug_reset(s.device.board)
+
+        for e in events:
+            e.wait()
         write_on_csv(x,y,z)
+        print("Done! If you close the live graph you can get the static one")
 def animate(i):  
     lines[0].set_data(t, x)
     lines[1].set_data(t, y)
